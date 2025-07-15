@@ -1,0 +1,16 @@
+.labelbox,
+.labelcircle,
+.labelpolygon {
+  fill: #ff0;
+  stroke: green;
+  stroke-width: 2px;
+  fill-opacity: 0.1;
+}
+.labelpoint {
+  fill: red;
+}
+.svg_select_points {
+  fill: #000;
+  fill-opacity: 0.1;
+  stroke: grey;
+}
