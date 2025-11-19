@@ -1,13 +1,13 @@
+// imglab/js/openfile.js
 function openDataFile() {
   $.dialog({
-    title: "Open/Import",
-    content: `<p>Due to the security reasons, browser doesn't allow to load the images.
-        So please load the images manually.</p>
-        <div style="text-align:center;">
-            <label class="btn btn-primary btn-bs-file">Browse
-                <input id="browse" type="file" class="filebutton" accept=".fpp,.nimn,.xml,.json"   />
-            </label>
-        <div>`,
+    title: "Open / Import Project",
+    content: `<p>Load a previously saved project file (.nimn, .json, .xml).</p>
+                <div style="text-align:center;">
+                    <label class="btn btn-primary btn-bs-file">Browse File
+                        <input id="browse" type="file" class="filebutton" accept=".nimn,.xml,.json" />
+                    </label>
+                </div>`,
     escapeKey: true,
     backgroundDismiss: true,
     onContentReady: function () {
@@ -22,21 +22,20 @@ function readDataFile(e) {
   var input = e.target || e.srcElement;
   if (input.files && input.files[0]) {
     var dataFile = input.files[0];
-
     var reader = new FileReader();
+
     reader.onload = function (e) {
-      /* if(pointFile.name.endsWith(".pts")){
-                loadPts(e.target.result);
-            }else*/ if (dataFile.name.endsWith(".json")) {
-        loadJSONFile(e.target.result);
+      var content = e.target.result;
+
+      if (dataFile.name.endsWith(".json")) {
+        loadJSONFile(content);
       } else if (dataFile.name.endsWith(".nimn")) {
-        loadProjectFile(e.target.result);
-      } else if (dataFile.name.endsWith(".fpp")) {
-        loadFpp(e.target.result);
+        loadProjectFile(content);
       } else if (dataFile.name.endsWith(".xml")) {
-        loadDlibXml(e.target.result);
+        loadDlibXml(content);
       } else {
-        console.log("Not supported");
+        showSnackBar("File format not supported!");
+        console.log("Not supported format");
       }
     };
 
@@ -46,84 +45,95 @@ function readDataFile(e) {
 }
 
 var loadJSONFile = function (data) {
-  labellingData = cocoFormater.fromCOCO(JSON.parse(data));
+  try {
+    var parsedData = JSON.parse(data);
+    // Kiểm tra xem đây là định dạng COCO hay Internal Format
+    if (parsedData.images && parsedData.annotations) {
+      // Nếu là COCO
+      if (typeof cocoFormater !== "undefined") {
+        labellingData = cocoFormater.fromCOCO(parsedData);
+      }
+    } else {
+      // Nếu là định dạng nội bộ (Internal) - Quan trọng cho OCR
+      // Gán trực tiếp dữ liệu để giữ nguyên các trường attributes (Text OCR)
+      labellingData = parsedData;
+    }
+    showSnackBar("Project loaded successfully!");
+  } catch (err) {
+    console.error(err);
+    showSnackBar("Error loading JSON file.");
+  }
 };
 
 var loadProjectFile = function (data) {
-  labellingData = nimn.parse(nimnSchema, data);
-  //labellingData =  JSON.parse(data);
-};
-var loadDlibXml = function (data) {
-  var obj = parser.parse(data, {
-    ignoreAttributes: false,
-    attributeNamePrefix: "",
-  });
-
-  //labellingData = {};
-  var image = obj.dataset.images.image;
-
-  if (!Array.isArray(image)) {
-    image = [image];
+  try {
+    // NIMN là định dạng nén của imglab, dùng schema đã định nghĩa
+    labellingData = nimn.parse(nimnSchema, data);
+    showSnackBar("Project loaded successfully!");
+  } catch (err) {
+    console.error(err);
+    showSnackBar("Error loading NIMN file.");
   }
+};
 
-  for (var index = 0; index < image.length; index++) {
-    //for each image
-    var pathArr = image[index].file.split(/\\|\//);
-    var imgName = pathArr[pathArr.length - 1];
-    var boxes = image[index].box;
-    var boxObject = [];
-    if (boxes) {
-      if (!Array.isArray(boxes)) {
-        boxes = [boxes];
-      }
-      for (var b_index = 0; b_index < boxes.length; b_index++) {
-        //for each box
-        var currentBox = boxes[b_index];
+var loadDlibXml = function (data) {
+  try {
+    var obj = parser.parse(data, {
+      ignoreAttributes: false,
+      attributeNamePrefix: "",
+    });
 
-        boxObject.push({
-          id: "rect" + b_index,
-          label: currentBox.label,
-          type: "rect",
-          bbox: {
-            x: currentBox.left,
-            y: currentBox.top,
-            h: currentBox.height,
-            w: currentBox.width,
-            /* ignore: currentBox.ignore */
-            /* pose='4' detection_score='4' */
-          },
-          points: [
-            currentBox.left,
-            currentBox.top,
-            currentBox.width,
-            currentBox.height,
-          ],
-          attributes: [],
-          featurePoints: [],
-          tags: [],
-        });
-        if (currentBox.part) {
-          if (!Array.isArray(currentBox.part)) {
-            currentBox.part = [currentBox.part];
-          }
-
-          for (var p_index = 0; p_index < currentBox.part.length; p_index++) {
-            //for each part
-            var pointlabel = currentBox.part[p_index].name || p_index + 1;
-
-            boxObject[b_index].featurePoints.push({
-              id: "point" + p_index,
-              x: currentBox.part[p_index].x /*  - currentBox.left */,
-              y: currentBox.part[p_index].y /*  - currentBox.top */,
-              label: pointlabel,
-            });
-          } //End - for each part
-        }
-      } //End - for each box
+    var image = obj.dataset.images.image;
+    if (!Array.isArray(image)) {
+      image = [image];
     }
 
-    if (labellingData[imgName]) {
+    for (var index = 0; index < image.length; index++) {
+      var pathArr = image[index].file.split(/\\|\//);
+      var imgName = pathArr[pathArr.length - 1];
+      var boxes = image[index].box;
+      var boxObject = [];
+
+      if (boxes) {
+        if (!Array.isArray(boxes)) {
+          boxes = [boxes];
+        }
+        for (var b_index = 0; b_index < boxes.length; b_index++) {
+          var currentBox = boxes[b_index];
+
+          boxObject.push({
+            id: "rect" + b_index,
+            label: currentBox.label || "",
+            type: "rect",
+            bbox: {
+              x: parseInt(currentBox.left),
+              y: parseInt(currentBox.top),
+              h: parseInt(currentBox.height),
+              w: parseInt(currentBox.width),
+            },
+            points: [
+              parseInt(currentBox.left),
+              parseInt(currentBox.top),
+              parseInt(currentBox.width),
+              parseInt(currentBox.height),
+            ],
+            attributes: [], // Reset attributes khi load từ XML
+            tags: [],
+          });
+        }
+      }
+
+      // Nếu ảnh đã có trong store thì mới gán (hoặc tạo mới nếu cần)
+      // Ở đây ta gán trực tiếp vào labellingData
+      if (!labellingData[imgName]) {
+        // Tạo placeholder nếu chưa có
+        labellingData[imgName] = { shapes: [] };
+      }
       labellingData[imgName].shapes = boxObject;
     }
-  } //End - for each image
+    showSnackBar("XML loaded. Note: XML may not contain OCR text.");
+  } catch (e) {
+    console.error(e);
+    showSnackBar("Error parsing XML.");
+  }
 };

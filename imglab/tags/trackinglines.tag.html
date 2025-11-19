@@ -1,64 +1,81 @@
+<!-- imglab/tags/trackinglines.tag.html -->
 <trackinglines>
   <style>
     .trackingline {
-      outline: 1px solid yellow;
-      opacity: 0.5;
       position: absolute;
-      display: block;
+      display: none; /* Ẩn mặc định */
+      pointer-events: none; /* Quan trọng: Để chuột click xuyên qua đường kẻ */
+      z-index: 2;
+    }
+    /* Style cho đường ngang: Nét đứt màu Cyan, mảnh */
+    .h-line {
+      border-top: 1px dashed rgba(0, 255, 255, 0.8);
+      width: 100%;
+      height: 0px;
+    }
+    /* Style cho đường dọc */
+    .v-line {
+      border-left: 1px dashed rgba(0, 255, 255, 0.8);
+      height: 100%;
+      width: 0px;
+    }
+    /* Ẩn luôn tooltip toạ độ để không che chữ */
+    #tooltip-span {
+      display: none !important;
     }
   </style>
-  <span id="tooltip-span"></span>
-  <div class="trackingline" ref="v_line"></div>
-  <div class="trackingline" ref="h_line"></div>
+
+  <div class="trackingline v-line" ref="v_line"></div>
+  <div class="trackingline h-line" ref="h_line"></div>
+
   <script>
     var tag = this;
-    var canvas = $("#work-canvas");
+
     this.on("mount", function () {
       var canvas = $("#work-canvas");
       var canvasContainer = $("#canvas-container");
 
-      $(tag.refs["h_line"]).width(
-        imgSelected.size.scaledWidth > canvasContainer.width()
-          ? imgSelected.size.scaledWidth
-          : canvasContainer.width()
-      );
-      $(tag.refs["v_line"]).height(
-        imgSelected.size.scaledHeight > canvasContainer.height()
-          ? imgSelected.size.scaledHeight
-          : canvasContainer.height()
-      );
+      // Hàm cập nhật độ dài đường kẻ dựa trên kích thước ảnh/canvas
+      function updateLineDimensions() {
+        if (typeof imgSelected === "undefined" || !imgSelected.size) return;
 
+        var w =
+          imgSelected.size.scaledWidth > canvasContainer.width()
+            ? imgSelected.size.scaledWidth
+            : canvasContainer.width();
+
+        var h =
+          imgSelected.size.scaledHeight > canvasContainer.height()
+            ? imgSelected.size.scaledHeight
+            : canvasContainer.height();
+
+        $(tag.refs["h_line"]).width(w);
+        $(tag.refs["v_line"]).height(h);
+      }
+
+      // Gọi lần đầu
+      updateLineDimensions();
+
+      // Sự kiện di chuột: Chỉ di chuyển đường kẻ
       canvas.mousemove(function (event) {
-        $("#tooltip-span").show();
         $(tag.refs["h_line"]).show();
         $(tag.refs["v_line"]).show();
-        //TODO: replace with myCanvas.point(event.x, event.y);
+
         var cordinates = getCordinates(event, canvas);
-        $("#tooltip-span").css({
-          left: cordinates.x + 15 + "px",
-          top: cordinates.y + 15 + "px",
-        });
-        $("#tooltip-span").html("x:" + cordinates.x + "<br> y:" + cordinates.y);
-        $(tag.refs["h_line"]).css({
-          top: cordinates.y,
-        });
-        $(tag.refs["v_line"]).css({
-          left: cordinates.x,
-        });
+
+        $(tag.refs["h_line"]).css({ top: cordinates.y });
+        $(tag.refs["v_line"]).css({ left: cordinates.x });
       });
 
+      // Ra khỏi vùng vẽ thì ẩn đi
       canvas.mouseout(function (event) {
-        $("#tooltip-span").hide();
         $(tag.refs["h_line"]).hide();
         $(tag.refs["v_line"]).hide();
       });
     });
 
+    // Lắng nghe sự kiện resize hoặc zoom để cập nhật độ dài đường kẻ
     this.on("trackinglines_update", function (values) {
-      update_h_v_line(values);
-    });
-
-    function update_h_v_line(values) {
       var canvasContainer = $("#canvas-container");
       $(tag.refs["h_line"]).width(
         values.width > canvasContainer.width()
@@ -70,6 +87,6 @@
           ? values.height
           : canvasContainer.height()
       );
-    }
+    });
   </script>
 </trackinglines>

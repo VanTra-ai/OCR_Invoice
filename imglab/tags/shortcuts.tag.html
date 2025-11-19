@@ -1,45 +1,67 @@
+<!-- imglab/tags/shortcuts.tag.html -->
 <shortcuts>
-  <i class="icon-keyboard" onclick="{showkeymaps}"></i>
+  <style>
+    /* Thêm con trỏ tay để biết là nút bấm được */
+    .icon-keyboard {
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+    /* Tinh chỉnh bảng hiển thị cho gọn */
+    .shortcut-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .shortcut-header {
+      font-weight: bold;
+      color: #333;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      border-bottom: 2px solid #007bff;
+      display: inline-block;
+    }
+  </style>
+
+  <i
+    class="icon-keyboard"
+    onclick="{showkeymaps}"
+    title="Keyboard Shortcuts"
+  ></i>
+
   <script>
     this.showkeymaps = function () {
       $.dialog({
-        title: "Keymap",
+        title: "Keyboard Shortcuts (OCR Mode)",
         content: `
-                <p>File Management</p>
-                <table>
-                    <tr><td><kbd>Alt</kbd> + <kbd>o</kbd></td><td> Open images.<td></tr>
-                    <tr><td><kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>o</kbd></td><td> Open image folder.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>i</kbd></td><td> Import data file.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>e</kbd></td><td> Export data file.<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>Left/Right Arrow</kbd></td><td> Navigate & load images from slider to workarea.<td></tr>
-                </table>
-                <br>
-                <p>Shape Manipulation</p>
-                <table>
-                    <tr><td><kbd>Del</kbd></td><td> Delete selected shapes or feature points.<td></tr>
-                    <tr><td><kbd>Enter</kbd></td><td> Confirm action.<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>a</kbd></td><td> Select all shapes.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>Left</kbd></td><td> Move the selected shapes by 1 pixel to the left.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>Right</kbd></td><td> Move the selected shapes by 1 pixel to the right.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>Up</kbd></td><td> Move the selected shapes by 1 pixel to the up.<td></tr>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>Down</kbd></td><td> Move the selected shapes by 1 pixel to the down.<td></tr>
-                </table>
-                <br>
-                <p>Tools</p>
-                <table> 
-                    <tr><td><kbd>Alt</kbd> + <kbd>f</kbd></td><td> Feature Point<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>c</kbd></td><td> Circle<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>e</kbd></td><td> Ellipse<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>r</kbd></td><td> Rectangle<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>p</kbd></td><td> Polygon<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>w</kbd></td><td> Magic wand<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>m</kbd></td><td> Move<td></tr>
-                    <tr><td><kbd>Alt</kbd> + <kbd>+</kbd></td><td> Zoom<td></tr>
-                </table>
+                <div style="padding-bottom: 10px;">
+                    
+                    <div class="shortcut-header">File Management</div>
+                    <table class="shortcut-table" width="100%">
+                        <tr><td width="40%"><kbd>Alt</kbd> + <kbd>o</kbd></td><td>Open Images</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>i</kbd></td><td>Import Project</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>e</kbd></td><td>Save / Export Data</td></tr>
+                        <tr><td><kbd>Alt</kbd> + <kbd>⬅</kbd> / <kbd>➡</kbd></td><td>Previous / Next Image</td></tr>
+                    </table>
+
+                    <div class="shortcut-header">Tools</div>
+                    <table class="shortcut-table" width="100%">
+                        <tr><td width="40%"><kbd>Alt</kbd> + <kbd>r</kbd></td><td><strong>Rectangle Tool</strong> (Vẽ khung)</td></tr>
+                        <tr><td><kbd>Alt</kbd> + <kbd>m</kbd></td><td>Move Tool (Di chuyển)</td></tr>
+                    </table>
+
+                    <div class="shortcut-header">Editing Actions</div>
+                    <table class="shortcut-table" width="100%">
+                        <tr><td width="40%"><kbd>Del</kbd></td><td>Delete Selected Box</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>c</kbd></td><td>Copy Selected Box</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>v</kbd></td><td>Paste Box</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>a</kbd></td><td>Select All</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Arrows</kbd></td><td>Move Box 1px (Precision)</td></tr>
+                    </table>
+
+                </div>
                 `,
         escapeKey: true,
         backgroundDismiss: true,
-        columnClass: "col-md-8 col-md-offset-4 col-xs-4 col-xs-offset-8",
+        columnClass: "col-md-6 col-md-offset-3 col-xs-10 col-xs-offset-1", // Căn chỉnh độ rộng popup
       });
     };
   </script>

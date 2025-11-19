@@ -1,3 +1,4 @@
+// imglab/js/nimnObjStructure.js
 var labeledDataStructure = {
   type: "varmap",
   detail: {
@@ -19,7 +20,7 @@ var labeledDataStructure = {
             },
             {
               type: "string",
-              name: "values",
+              name: "value", // <-- Đã sửa từ 'values' thành 'value' để khớp dữ liệu
             },
           ],
         },
@@ -132,7 +133,7 @@ var labeledDataStructure = {
                   },
                   {
                     type: "string",
-                    name: "values",
+                    name: "value", // <-- Đã sửa thành 'value'
                   },
                 ],
               },
@@ -144,36 +145,12 @@ var labeledDataStructure = {
                 type: "string",
               },
             },
-            {
-              name: "featurePoints",
-              type: "list",
-              detail: {
-                type: "map",
-                detail: [
-                  {
-                    type: "number",
-                    name: "x",
-                  },
-                  {
-                    type: "number",
-                    name: "y",
-                  },
-                  {
-                    type: "string",
-                    name: "label",
-                  },
-                  {
-                    type: "string",
-                    name: "id",
-                  },
-                ],
-              },
-            },
+            // Đã xóa featurePoints ở đây
           ],
         },
       },
     ],
-    name: "amitkumargupta.work_riot.jpg",
+    name: "default_name",
   },
 };
 

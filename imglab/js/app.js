@@ -1,3 +1,4 @@
+// imglab/js/app.js
 function showSnackBar(msg) {
   // Get the snackbar DIV
   $("#snackbar").text(msg);

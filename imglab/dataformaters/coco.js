@@ -1,15 +1,15 @@
+// imglab/dataformaters/coco.js
 var cocoFormater = {
+  // 1. HÀM ĐỌC FILE (IMPORT)
   fromCOCO: function (cocoData) {
     let labellingData = {},
       idNumber = 1000;
 
     let categories = [];
-    for (
-      var category_i = 0;
-      category_i < cocoData.categories.length;
-      category_i++
-    ) {
-      categories.push(cocoData.categories[category_i]);
+    if (cocoData.categories) {
+      for (var i = 0; i < cocoData.categories.length; i++) {
+        categories.push(cocoData.categories[i]);
+      }
     }
 
     for (var image_i = 0; image_i < cocoData.images.length; image_i++) {
@@ -31,66 +31,51 @@ var cocoFormater = {
       };
 
       for (var annot_i = 0; annot_i < cocoData.annotations.length; annot_i++) {
-        const annotation = cocoData.annotations[annot_i],
-          segLength = annotation.segmentation[0].length;
+        const annotation = cocoData.annotations[annot_i];
+
         if (annotation.image_id === image.id) {
-          // convert COCO to old format
-          if (!("x" in annotation.bbox)) {
+          // Xử lý bbox mảng thành object
+          if (Array.isArray(annotation.bbox)) {
+            var bboxArr = annotation.bbox;
             annotation.bbox = {
-              x: annotation.bbox[0],
-              y: annotation.bbox[1],
-              width: annotation.bbox[2],
-              height: annotation.bbox[3],
-              w: annotation.bbox[2],
-              h: annotation.bbox[3],
-              cx: annotation.bbox[0] + annotation.bbox[2] / 2,
-              cy: annotation.bbox[1] + annotation.bbox[3] / 2,
+              x: bboxArr[0],
+              y: bboxArr[1],
+              width: bboxArr[2],
+              height: bboxArr[3],
+              w: bboxArr[2], // Đảm bảo có cả w
+              h: bboxArr[3], // Đảm bảo có cả h
+              cx: bboxArr[0] + bboxArr[2] / 2,
+              cy: bboxArr[1] + bboxArr[3] / 2,
             };
           }
-          let id = "SvgjsRect",
+
+          let id = "SvgjsRect" + idNumber,
             type = "rect",
-            bbox = annotation.bbox,
-            segmentation = annotation.segmentation[0],
-            points = [bbox.x, bbox.y, bbox.width, bbox.height];
-          if (
-            segLength === 2 &&
-            segmentation[0] === bbox.cx &&
-            segmentation[1] === bbox.cy &&
-            annotation.area !== 0
-          ) {
-            (id = "SvgjsCircle"),
-              (type = "circle"),
-              (points = [bbox.cx, bbox.cy, bbox.height / 2]);
-          } else if (
-            segLength !== 8 ||
-            segmentation[2] - segmentation[0] !==
-              segmentation[4] - segmentation[6] ||
-            segmentation[3] - segmentation[1] !==
-              segmentation[5] - segmentation[7]
-          ) {
-            let polyPoints = [];
-            (id = "SvgjsPolygon"), (type = "polygon");
-            for (var point_i = 0; point_i < segLength; point_i += 2) {
-              polyPoints.push([
-                segmentation[point_i],
-                segmentation[point_i + 1],
-              ]);
-            }
-            points = polyPoints;
-          }
+            points = [
+              annotation.bbox.x,
+              annotation.bbox.y,
+              annotation.bbox.w,
+              annotation.bbox.h,
+            ];
+
+          // Tìm tên Category
+          var catName = "uncategorized";
+          var foundCat = categories.find((x) => x.id == annotation.category_id);
+          if (foundCat) catName = foundCat.name;
+
+          // Lấy nội dung OCR
+          var ocrContent = annotation.label_name || "";
 
           labellingData[image.file_name].shapes.push({
-            id: id + idNumber.toString(),
-            label: "null",
-            attributes: [],
+            id: id,
+            label: catName,
+            attributes: [{ label: catName, value: ocrContent }],
             tags: [],
             type: type,
             bbox: annotation.bbox,
             points: points,
             featurePoints: [],
-            category: categories.filter(
-              (x) => x.id == annotation.category_id
-            )[0].name,
+            category: catName,
           });
           idNumber++;
         }
@@ -99,83 +84,111 @@ var cocoFormater = {
 
     return labellingData;
   },
+
+  // 2. HÀM XUẤT FILE (EXPORT) - ĐÃ SỬA LỖI NULL
   toCOCO: function (labellingData) {
     var categories = [];
-
     var cocoData = {
       images: [],
       annotations: [],
       categories: [],
     };
     var images = Object.keys(labellingData);
+    var annotationId = 1;
 
-    //Add images
     for (var image_i = 0; image_i < images.length; image_i++) {
       var imageName = images[image_i];
+      var imgData = labellingData[imageName];
+
       cocoData.images.push({
         file_name: imageName,
-        height: labellingData[imageName].size.height,
-        width: labellingData[imageName].size.width,
+        height: imgData.size.height,
+        width: imgData.size.width,
         id: image_i + 1,
       });
 
-      //Add annotations
-      for (
-        var shape_i = 0;
-        shape_i < labellingData[imageName].shapes.length;
-        shape_i++
-      ) {
-        var shape = labellingData[imageName].shapes[shape_i];
-        if (categories.indexOf(shape.category) === -1) {
-          categories.push(shape.category);
-        }
-        var area,
-          points = [];
-        if (shape.type === "polygon") {
-          points = [];
-          for (var i = 0; i < shape.points.length; i++) {
-            points = points.concat(shape.points[i]);
-          }
-          area = calcArea(points);
-        } else if (shape.type === "circle") {
-          points = [shape.points[0], shape.points[1]];
-          area = shape.points[2] * shape.points[2] * Math.PI;
-        } else if (shape.type === "rect") {
-          points = [
-            shape.points[0],
-            shape.points[1],
-            shape.points[0] + shape.points[2],
-            shape.points[1],
-            shape.points[0] + shape.points[2],
-            shape.points[1] + shape.points[3],
-            shape.points[0],
-            shape.points[1] + shape.points[3],
-          ];
-          area = calcArea(points);
-        }
+      if (imgData.shapes) {
+        for (var shape_i = 0; shape_i < imgData.shapes.length; shape_i++) {
+          var shape = imgData.shapes[shape_i];
 
-        cocoData.annotations.push({
-          segmentation: [points],
-          //area: area,
-          image_id: image_i + 1,
-          bbox: [
-            shape.bbox.x,
-            shape.bbox.y,
-            shape.bbox.width,
-            shape.bbox.height,
-          ],
-          category_id: categories.indexOf(shape.category) + 1,
-          id: shape_i + 1,
-          label_name: shape.label,
-        });
+          var categoryName = shape.label || "uncategorized";
+          var ocrText = "";
+
+          if (shape.attributes && shape.attributes.length > 0) {
+            categoryName = shape.attributes[0].label || categoryName;
+            ocrText = shape.attributes[0].value || "";
+          }
+
+          var catIndex = categories.indexOf(categoryName);
+          if (catIndex === -1) {
+            categories.push(categoryName);
+            catIndex = categories.length - 1;
+          }
+
+          // --- SỬA LỖI TẠI ĐÂY: Ưu tiên lấy w, h ---
+          var x = shape.bbox.x;
+          var y = shape.bbox.y;
+          // Store lưu là w, h. Một số chỗ cũ có thể là width, height. Lấy cái nào tồn tại.
+          var w =
+            typeof shape.bbox.w !== "undefined"
+              ? shape.bbox.w
+              : shape.bbox.width;
+          var h =
+            typeof shape.bbox.h !== "undefined"
+              ? shape.bbox.h
+              : shape.bbox.height;
+
+          // Đảm bảo không bị null/undefined để tránh lỗi tính toán
+          if (w === undefined || w === null) w = 0;
+          if (h === undefined || h === null) h = 0;
+
+          // Tính toán Segmentation (4 điểm của hình chữ nhật)
+          // [x_top_left, y_top_left, x_top_right, y_top_right, x_bottom_right, y_bottom_right, x_bottom_left, y_bottom_left]
+          var segmentation = [
+            [
+              x,
+              y, // Top-Left
+              x + w,
+              y, // Top-Right
+              x + w,
+              y + h, // Bottom-Right
+              x,
+              y + h, // Bottom-Left
+            ],
+          ];
+
+          // Tính toán bbox_norm (Chuẩn hóa 0-1)
+          var imgW = imgData.size.width;
+          var imgH = imgData.size.height;
+
+          // Tránh chia cho 0
+          if (imgW === 0) imgW = 1;
+          if (imgH === 0) imgH = 1;
+
+          var bbox_norm = [
+            x / imgW, // x_min
+            y / imgH, // y_min
+            (x + w) / imgW, // x_max
+            (y + h) / imgH, // y_max
+          ];
+
+          cocoData.annotations.push({
+            segmentation: segmentation,
+            image_id: image_i + 1,
+            bbox: [x, y, w, h],
+            category_id: catIndex + 1,
+            id: annotationId++,
+            label_name: ocrText,
+            bbox_norm: bbox_norm,
+          });
+        }
       }
     }
 
-    //Add cateogries
-    for (var category_i = 0; category_i < categories.length; category_i++) {
+    for (var i = 0; i < categories.length; i++) {
       cocoData.categories.push({
-        id: category_i + 1,
-        name: categories[category_i] || "uncategorized",
+        id: i + 1,
+        name: categories[i],
       });
     }
 
@@ -186,9 +199,8 @@ var cocoFormater = {
 function calcArea(coords) {
   var area = 0;
   var numCoords = coords.length;
-
   for (var i = 0; i < numCoords; i += 2) {
-    nexti = (i + 2) % numCoords; //make last+1 wrap around to zero
+    var nexti = (i + 2) % numCoords;
     area += coords[i] * coords[nexti + 1] - coords[i + 1] * coords[nexti];
   }
   return Math.abs(area / 2);

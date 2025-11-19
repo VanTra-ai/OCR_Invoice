@@ -1,3 +1,4 @@
+// imglab/js/thirdparty/fxp.js
 (function (f) {
   if (typeof exports === "object" && typeof module !== "undefined") {
     module.exports = f();

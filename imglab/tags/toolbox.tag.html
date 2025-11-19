@@ -1,9 +1,11 @@
+<!-- imglab/tags/toolbox.tag.html -->
 <toolbox>
   <style>
     .tool-button {
       text-align: center;
       margin: 14px 0px;
       font-size: 0.9em;
+      cursor: pointer; /* Thêm con trỏ tay */
     }
     .tool-icon {
       width: 40%;
@@ -19,81 +21,49 @@
   </style>
 
   <div
-    each={tool, toolid in tools[opts.tools]}
-    id={toolid}
+    each="{tool, toolid in tools[opts.tools]}"
+    id="{toolid}"
     class="tool-button"
-    onclick={selectme}
+    onclick="{selectme}"
+    title="{tool.title}"
   >
-    <img if={tool.icon} class="tool-icon" src={"img/icons/" + tool.icon} />
-    <i if={tool.icon_font} class={"tool-icon " + tool.icon_font} />
+    <img if={tool.icon} class="tool-icon" src={"img/icons/" + tool.icon} /> <i
+    if={tool.icon_font} class={"tool-icon " + tool.icon_font} />
     <div>{tool.title}</div>
   </div>
 
   <script>
-    //this.toolsData = tools[opts.tools];
     var tag = this;
+
     this.on("mount", function () {
+      // Đăng ký phím tắt chuyển đổi công cụ
       document.addEventListener("keydown", (e) => {
-        if (e.key == "f" && e.altKey) {
-          //featurepoint
-          $("#tool-point").click();
-          e.preventDefault();
-          e.stopPropagation();
-        }
+        // Nếu đang nhập liệu (input text), không kích hoạt phím tắt công cụ
+        if ($(e.target).is('input[type="text"]')) return;
 
-        if (e.key == "c" && e.altKey) {
-          //circle
-          $("#tool-circle").click();
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        /* if (e.key == 'e'  && e.altKey){//ellipse
-                    $("#tool-ellipse").click();
-                    e.preventDefault();
-                    e.stopPropagation()
-                } */
-
+        // Alt + R: Rectangle (Vẽ hình chữ nhật)
         if (e.key == "r" && e.altKey) {
-          //rectangle
           $("#tool-rectangle").click();
           e.preventDefault();
           e.stopPropagation();
         }
 
-        if (e.key == "p" && e.altKey) {
-          //Polygon
-          $("#tool-polygon").click();
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        /* if (e.key == 'w'  && e.altKey){//Magic wand
-                    $("#tool-polygon").click();
-                    e.preventDefault();
-                    e.stopPropagation()
-                } */
-
+        // Alt + M: Move (Di chuyển)
         if (e.key == "m" && e.altKey) {
-          //Magic wand
           $("#tool-move").click();
           e.preventDefault();
           e.stopPropagation();
         }
-
-        // if (e.key == "l" && e.altKey) {
-        //   //Magic wand
-        //   $("#tool-light").click();
-        //   e.preventDefault();
-        //   e.stopPropagation();
-        // }
+        $("#tool-rectangle").click();
       });
     });
 
     tag.selectme = function (e) {
-      //TODO: should it unseect all the tools or tools in current toolbox
       $(".tool-selected").removeClass("tool-selected");
+
+      // Lấy thông tin công cụ từ biến toàn cục tools
       var toolDetail = tools[opts.tools][e.item.toolid];
+
       if (toolDetail.selectAction) {
         toolDetail.selectAction();
       } else {
@@ -101,6 +71,7 @@
         $(e.currentTarget).addClass("tool-selected");
       }
 
+      // Nếu công cụ có thanh hành động phụ (như Zoom), mount nó
       if (toolDetail.actions) {
         riot.mount("actionbar", { actions: toolDetail.actions });
       }

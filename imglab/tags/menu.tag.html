@@ -1,23 +1,37 @@
+<!-- imglab/tags/menu.tag.html -->
 <menu-dropdown>
   <style>
     .dropdown-content {
       z-index: 4;
+      box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2); /* Thêm bóng đổ cho đẹp */
     }
     .dropdown-content > a {
       display: flex;
       justify-content: space-between;
+      cursor: pointer; /* Con trỏ chuột dạng bàn tay */
+      padding: 10px 16px; /* Tăng khoảng cách bấm cho dễ */
+      text-decoration: none;
+    }
+    .dropdown-content > a:hover {
+      background-color: #f1f1f1;
     }
     .dropdown-content > a > span {
-      padding: 0.2em 0.4em 0.4em 0.4em;
+      padding-left: 10px;
       font-size: 80%;
+      color: #666;
+      align-self: center;
     }
   </style>
+
   <div class="dropdown">
-    <div class="dropbtn"><i class="icon-menu"></i></div>
+    <div class="dropbtn" title="Menu"><i class="icon-menu"></i></div>
     <div class="dropdown-content">
       <a href="#">
-        <label class="btn-bs-file"
-          >Open
+        <label
+          class="btn-bs-file"
+          style="margin: 0; cursor: pointer; font-weight: normal"
+        >
+          Open Project
           <input
             id="browse"
             type="file"
@@ -26,33 +40,45 @@
             onchange="{openFile}"
           />
         </label>
-        <span>Ctrl + i</span>
+        <span>Ctrl + I</span>
       </a>
+
       <a href="#" id="save" onclick="{saveFile}">
-        <label>Save</label>
-        <span>Ctrl + e</span>
+        <label style="margin: 0; cursor: pointer; font-weight: normal"
+          >Save Data</label
+        >
+        <span>Ctrl + E</span>
       </a>
+
       <a href="#" onclick="{openSettings}">Settings</a>
     </div>
   </div>
+
   <script>
     this.openFile = function (e) {
-      readDataFile(e);
-      //openDataFile()
+      // Hàm toàn cục đọc file (nằm ở js/openfile.js)
+      if (typeof readDataFile === "function") {
+        readDataFile(e);
+      }
     };
 
     this.saveFile = function () {
-      selectFileTypeToSave();
+      // Hàm toàn cục chọn định dạng lưu (nằm ở js/savefile.js)
+      if (typeof selectFileTypeToSave === "function") {
+        selectFileTypeToSave();
+      }
     };
 
     this.openSettings = function () {
-      displaySettingsModal();
+      if (typeof displaySettingsModal === "function") {
+        displaySettingsModal();
+      }
     };
 
-    //Mapping Keyboard keys
+    // Đăng ký phím tắt
     this.on("mount", function () {
       document.addEventListener("keydown", (e) => {
-        //import
+        // Ctrl + I: Import
         if (
           (e.key == "I" || e.key == "i") &&
           !e.shiftKey &&
@@ -63,13 +89,13 @@
           e.preventDefault();
           e.stopPropagation();
         }
+        // Ctrl + E: Export
         if (
           (e.key == "E" || e.key == "e") &&
           !e.shiftKey &&
           !e.altKey &&
           e.ctrlKey
         ) {
-          //export
           document.getElementById("save").click();
           e.preventDefault();
           e.stopPropagation();

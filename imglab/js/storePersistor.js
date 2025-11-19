@@ -1,47 +1,87 @@
-//Maintains synchrony between the store and the browser local storage
+// imglab/js/storePersistor.js
 
-/*
- * If there is work saved in local storage, it will retrieve it.
- * Otherwise, it'll return an empty json {}
+/**
+ * Kiểm tra xem có dữ liệu cũ trong bộ nhớ trình duyệt không
+ * Nếu có thì hỏi người dùng có muốn khôi phục không
  */
 function confirmUserToLoadBrowserCache() {
-  var localStorageData = localStorage.getItem("labellingData");
-  if (localStorageData) {
+  var cachedStr = localStorage.getItem("labellingData");
+
+  if (cachedStr) {
     try {
-      var localStorageData = JSON.parse(localStorageData);
-      if (Object.keys(localStorageData).length > 0) {
+      var cachedData = JSON.parse(cachedStr);
+      // Chỉ hỏi nếu dữ liệu cache có nội dung
+      if (Object.keys(cachedData).length > 0) {
         $.confirm({
-          title: "Recovery",
+          title: "Restore Session",
           content:
-            "You've previously saved data. Would you like to restore that?",
+            "Found unsaved data from previous session. Do you want to restore it?",
           buttons: {
             confirm: {
-              text: "Yes",
+              text: "Yes, Restore",
+              btnClass: "btn-blue",
               action: function () {
-                labellingData = localStorageData;
+                labellingData = cachedData;
+                if (typeof showSnackBar === "function") {
+                  showSnackBar("Data restored successfully!");
+                }
+                // Nếu đang ở màn hình workarea, cần vẽ lại (reload page hoặc trigger event)
+                // Nhưng thường hàm này chạy khi mới load trang nên biến labellingData cập nhật là đủ.
               },
             },
             cancel: {
-              text: "No",
+              text: "No, Discard",
               action: function () {
-                //no action
+                localStorage.removeItem("labellingData");
               },
             },
           },
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Error parsing local storage data", e);
+    }
   }
 }
 
+/**
+ * Xóa cache thủ công
+ */
 function clearCache() {
-  localStorage.clear();
+  localStorage.removeItem("labellingData");
+  if (typeof showSnackBar === "function") {
+    showSnackBar("Browser cache cleared.");
+  }
 }
 
-//Every 5 seconds, save the current data in localStorage
+/**
+ * Hàm thực hiện lưu dữ liệu vào LocalStorage
+ */
 var synchToBrowser = function () {
-  localStorage.setItem("labellingData", JSON.stringify(labellingData));
+  // 1. Kiểm tra xem config có cho phép autosave không
+  if (typeof appConfig !== "undefined" && appConfig.autosave.enable) {
+    // 2. Kiểm tra xem có dữ liệu để lưu không
+    if (
+      typeof labellingData !== "undefined" &&
+      Object.keys(labellingData).length > 0
+    ) {
+      try {
+        localStorage.setItem("labellingData", JSON.stringify(labellingData));
+      } catch (e) {
+        console.warn("Auto-save failed (LocalStorage might be full):", e);
+      }
+    }
+  }
 };
-window.setInterval(synchToBrowser, appConfig.autosave.syncingInterval);
 
+// Khởi động bộ đếm thời gian để Auto-save
+// Thời gian interval lấy từ settings.js
+if (typeof appConfig !== "undefined" && appConfig.autosave) {
+  window.setInterval(
+    synchToBrowser,
+    appConfig.autosave.syncingInterval || 10000
+  );
+}
+
+// Đợi 1 giây sau khi load trang rồi mới kiểm tra cache để giao diện ổn định
 setTimeout(confirmUserToLoadBrowserCache, 1000);

@@ -1,112 +1,150 @@
+<!-- imglab/tags/actions/zoom-action.tag.html -->
 <action-zoom>
   <style>
     .zoom-bar {
       display: flex;
+      align-items: center;
     }
     .zoom-bar > div:not(:first-child) {
-      margin-left: 0.2em;
+      margin-left: 5px;
     }
     .zoom-button {
-      padding: 0.3em;
+      padding: 4px;
       cursor: pointer;
+      border-radius: 3px;
     }
-    .zoom-button:not(.zoom-selected):hover {
-      background: grey;
+    .zoom-button:hover {
+      background-color: #e2e6ea;
+    }
+    .zoom-button img,
+    .zoom-button .tool-icon {
+      vertical-align: middle;
+      width: 20px;
+      height: 20px;
     }
     input[type="text"] {
-      border: 0px;
+      border: 1px solid #ccc;
       text-align: center;
-      margin-top: 0.2em;
+      border-radius: 3px;
+      padding: 2px;
+      background: #f8f9fa;
+      color: #333;
+      font-size: 0.9em;
     }
   </style>
+
   <div class="zoom-bar">
-    <div class="zoom-button">
-      <img src="img/icons/zoomin.svg" data-zoom-type="in" onclick={zoom} />
+    <div class="zoom-button" title="Zoom In">
+      <img src="img/icons/zoomin.svg" data-zoom-type="in" onclick="{zoom}" />
     </div>
+
     <div>
       <input
         id="zoom-scale"
         type="text"
         disabled
         value="100%"
-        maxlength="4"
-        size="4"
+        maxlength="5"
+        size="5"
       />
     </div>
-    <div class="zoom-button">
-      <img
-        src="img/icons/zoomout.svg"
-        data-zoom-type="out"
-        onclick={zoom}
-      />
+
+    <div class="zoom-button" title="Zoom Out">
+      <img src="img/icons/zoomout.svg" data-zoom-type="out" onclick="{zoom}" />
     </div>
-    <div class="zoom-button">
+
+    <div class="zoom-button" title="Reset Zoom (100%)">
       <div
         class="tool-icon icon-cw"
         data-zoom-type="reset"
-        onclick={zoom}
-      />
+        onclick="{zoom}"
+      ></div>
     </div>
   </div>
+
   <script>
     const tag = this;
+
+    // Lấy bước nhảy zoom từ config, mặc định là 0.1 (10%)
+    const ZOOM_STEP =
+      typeof appConfig !== "undefined" && appConfig.zoomStepSize
+        ? appConfig.zoomStepSize
+        : 0.1;
+
     tag.zoom = (e) => {
-      if (!window.imgSelected) {
-        alert("Chưa chọn ảnh!");
+      // Kiểm tra an toàn
+      if (typeof imgSelected === "undefined" || !imgSelected) {
         return;
       }
+
       let mulScale = 0;
-      switch (e.target.dataset.zoomType) {
+      let type =
+        e.target.dataset.zoomType || e.target.parentNode.dataset.zoomType; // Xử lý click trúng icon hoặc div
+
+      switch (type) {
         case "in":
-          if (imgSelected.size.imageScale >= 10) return;
+          if (imgSelected.size.imageScale >= 5) return; // Max zoom 500%
           mulScale = 1;
           break;
         case "out":
-          if (imgSelected.size.imageScale <= 0.1) return;
+          if (imgSelected.size.imageScale <= 0.1) return; // Min zoom 10%
           mulScale = -1;
           break;
         case "reset":
           mulScale = 0;
           break;
       }
+
+      // Tính toán tỷ lệ zoom mới
       const preImgSelectedScale = imgSelected.size.imageScale;
-      imgSelected.size.imageScale =
-        mulScale === 0
-          ? 1
-          : preImgSelectedScale + mulScale * appConfig.zoomStepSize;
-      const img = labellingData[imgSelected.name];
-      if (img && img.shapes) {
-        img.shapes.forEach((shape) => {
-          shape.zoomScale =
-            mulScale === 0
-              ? shape.defaultZoomScale
-              : (shape.zoomScale * imgSelected.size.imageScale) /
-                preImgSelectedScale;
-        });
+
+      if (mulScale === 0) {
+        imgSelected.size.imageScale = 1;
       } else {
-        console.warn("Không tìm thấy label cho ảnh này!");
+        imgSelected.size.imageScale =
+          preImgSelectedScale + mulScale * ZOOM_STEP;
       }
+
+      // Làm tròn để tránh số lẻ quá dài (VD: 1.1000000001)
+      imgSelected.size.imageScale =
+        Math.round(imgSelected.size.imageScale * 100) / 100;
+
+      // Cập nhật lại UI
       rescaleImage();
     };
+
     this.on("mount", () => {
-      if (window.imgSelected) {
+      updateInputDisplay();
+    });
+
+    function updateInputDisplay() {
+      if (typeof imgSelected !== "undefined" && imgSelected.size) {
         const zoomInput = document.getElementById("zoom-scale");
         if (zoomInput)
           zoomInput.value = Math.round(imgSelected.size.imageScale * 100) + "%";
       }
-    });
+    }
+
     function rescaleImage() {
-      const zoomInput = document.getElementById("zoom-scale");
-      if (zoomInput)
-        zoomInput.value = Math.round(imgSelected.size.imageScale * 100) + "%";
+      updateInputDisplay();
+
+      // Tính lại kích thước hiển thị của ảnh dựa trên scale
       imgSelected.size.scaledWidth = Math.floor(
         imgSelected.size.width * imgSelected.size.imageScale
       );
       imgSelected.size.scaledHeight = Math.floor(
         imgSelected.size.height * imgSelected.size.imageScale
       );
+
       imgSelected.isZoomed = 1;
-      if (window.riot) riot.mount("workarea");
+
+      // Vẽ lại Workarea với thông số mới
+      if (window.riot) {
+        riot.mount("workarea", { img: imgSelected });
+      }
+
+      // Lưu trạng thái zoom vào localStorage để lần sau mở ảnh vẫn giữ nguyên
+      localStorage.setItem("zoom", imgSelected.size.imageScale);
     }
   </script>
 </action-zoom>
